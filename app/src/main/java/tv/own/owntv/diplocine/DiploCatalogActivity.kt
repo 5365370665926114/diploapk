@@ -60,7 +60,7 @@ import tv.own.owntv.ui.stage.stageBackground
 class DiploCatalogActivity : ComponentActivity() {
     private val player: OwnTVPlayer by lazy { get() }
     private val settings: SettingsRepository by lazy { get() }
-    private var visible by mutableStateOf(false)
+    private var catalogForeground by mutableStateOf(false)
     private var ownsPlayback = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -78,11 +78,11 @@ class DiploCatalogActivity : ComponentActivity() {
 
     override fun onStart() {
         super.onStart()
-        visible = true
+        catalogForeground = true
     }
 
     override fun onStop() {
-        visible = false
+        catalogForeground = false
         stopPlayback()
         super.onStop()
     }
@@ -151,9 +151,9 @@ class DiploCatalogActivity : ComponentActivity() {
             } catch (cancelled: CancellationException) { throw cancelled }
             catch (error: Exception) { message = userError(error) }
         }
-        LaunchedEffect(playing, retry, visible) {
+        LaunchedEffect(playing, retry, catalogForeground) {
             videoReady = false
-            if (!visible) return@LaunchedEffect
+            if (!catalogForeground) return@LaunchedEffect
             val item = selection ?: return@LaunchedEffect
             val episode = playing ?: return@LaunchedEffect
             message = null
