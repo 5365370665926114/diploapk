@@ -23,7 +23,6 @@ import android.os.SystemClock;
 import android.text.InputType;
 import android.view.Gravity;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
@@ -378,22 +377,10 @@ public final class MainActivity extends Activity {
 
     private void updateState(EditState edit, Runnable after) {
         DiploApi client = api();
-        task(() -> {
-            for (int i = 0; i < 2; i++) {
-                JSONObject latest = client.get("/auth/state");
-                JSONObject data = object(latest, "data");
-                edit.apply(data);
-                try {
-                    JSONObject result = client.post("/auth/sync",
-                            DiploApi.object("revision", latest.getInt("revision"), "data", data));
-                    latest.put("revision", result.getInt("revision"));
-                    return latest;
-                } catch (DiploApi.Failure conflict) {
-                    if (conflict.status != 409 || i == 1) throw conflict;
-                }
-            }
-            throw new IllegalStateException("Não foi possível sincronizar.");
-        }, response -> { setState(response); after.run(); }, this::showError);
+        task(() -> client.updateState(data -> {
+            edit.apply(data);
+            return true;
+        }), response -> { setState(response); after.run(); }, this::showError);
     }
 
     private void devices() {
@@ -478,6 +465,11 @@ public final class MainActivity extends Activity {
         button("Modo de exibição", false, this::chooseMode);
         button("Alterar endereço do site", false, () -> siteSetup(this::start, this::settings));
         button("Abrir DiploCine no navegador", false, () -> openWeb("/"));
+        if (!token.isEmpty()) {
+            button("Estatísticas · site", false, () -> openWeb("/estatisticas"));
+            button("Ranking de horas · site", false, () -> openWeb("/ranking-horas"));
+            button("Doações Pix · site", false, () -> openWeb("/doacoes"));
+        }
     }
 
     private void appearance() {
@@ -530,7 +522,77 @@ public final class MainActivity extends Activity {
         action(tabs, "Doramas", route.startsWith("discover/tv?with_original_language"), () ->
                 catalog("Doramas", "discover/tv?with_original_language=ko&without_genres=16"));
         String defaultType = route.startsWith("movie/") ? "movie" : route.startsWith("tv/") || route.startsWith("discover/tv") ? "tv" : "";
+        if (route.equals("trending/all/week")) {
+            LinearLayout shelf = column();
+            body.addView(shelf);
+            task(() -> api().get("/auth/state"), response -> {
+                setState(response);
+                showResumeShelf(shelf);
+            }, ignored -> showResumeShelf(shelf));
+        }
         loadTitles(route, defaultType, () -> catalog(title, route));
+    }
+
+    private JSONObject profileStore() {
+        return object(object(object(state, "data"), "storage"), profile);
+    }
+
+    private void showResumeShelf(LinearLayout shelf) {
+        JSONArray recent = array(profileStore(), "diploAndroidResume");
+        LinearLayout buttons = null;
+        int shown = 0;
+        for (int i = 0; i < recent.length() && shown < 8; i++) {
+            JSONObject item = recent.optJSONObject(i);
+            if (item == null || item.optLong("position") <= 0) continue;
+            if (buttons == null) {
+                shelf.addView(label("Continuar assistindo", 22, Color.WHITE));
+                buttons = row(shelf);
+            }
+            shown++;
+            int id = item.optInt("id"), season = item.optInt("season"), episode = item.optInt("episode");
+            String title = item.optString("title"), type = item.optString("type");
+            action(buttons, season > 0 ? title + " · T" + season + " E" + episode : title, false,
+                    () -> playTitle(type, id, season, episode, title, null));
+        }
+    }
+
+    private void myList() {
+        browse("Minha Lista", "Títulos salvos no app com este perfil.");
+        JSONArray list = array(profileStore(), "diploAndroidList");
+        if (list.length() == 0) text("Adicione um filme ou uma série na página de detalhes.", 17, MUTED);
+        for (int i = 0; i < list.length(); i++) {
+            JSONObject item = list.optJSONObject(i);
+            if (item == null) continue;
+            String type = item.optString("type"), title = item.optString("title");
+            int id = item.optInt("id");
+            button(title, false, () -> details(type, id, title, this::myList));
+        }
+    }
+
+    private void setListed(String type, int id, String title, boolean listed, Runnable refresh) {
+        String selected = profile;
+        updateState(data -> {
+            JSONObject storage = object(data, "storage");
+            JSONObject saved = object(storage, selected);
+            JSONArray items = array(saved, "diploAndroidList");
+            int existing = findListTitle(items, type, id);
+            if (!listed && existing >= 0) items.remove(existing);
+            if (listed && existing < 0) {
+                if (items.length() >= 60) throw new IllegalStateException("Sua lista já tem 60 títulos.");
+                items.put(DiploApi.object("type", type, "id", id, "title", title));
+            }
+            saved.put("diploAndroidList", items);
+            storage.put(selected, saved);
+            data.put("storage", storage);
+        }, refresh);
+    }
+
+    private static int findListTitle(JSONArray items, String type, int id) {
+        for (int i = 0; i < items.length(); i++) {
+            JSONObject item = items.optJSONObject(i);
+            if (item != null && type.equals(item.optString("type")) && item.optInt("id") == id) return i;
+        }
+        return -1;
     }
 
     private void search() {
@@ -575,6 +637,9 @@ public final class MainActivity extends Activity {
         screen(title, type.equals("tv") ? "Série" : "Filme", back);
         task(() -> api().get(DiploApi.TMDB + type + "/" + id), detail -> {
             text(detail.optString("overview"), 17, MUTED);
+            boolean saved = findListTitle(array(profileStore(), "diploAndroidList"), type, id) >= 0;
+            button(saved ? "Remover da Minha Lista" : "Adicionar à Minha Lista", false,
+                    () -> setListed(type, id, title, !saved, () -> details(type, id, title, back)));
             if (type.equals("movie")) {
                 button("Assistir", true, () -> playTitle(type, id, 0, 0, title, null));
             } else {
@@ -687,6 +752,7 @@ public final class MainActivity extends Activity {
         action(navigation, "Início", title.equals("Início"), this::home);
         action(navigation, "Buscar", title.equals("Buscar"), this::search);
         action(navigation, "Ao vivo", title.equals("TV ao vivo"), this::live);
+        action(navigation, "Lista", title.equals("Minha Lista"), this::myList);
         action(navigation, "Perfil", false, this::settings);
         if (tv) action(navigation, "Mais no site", false, () -> openWeb("/"));
     }

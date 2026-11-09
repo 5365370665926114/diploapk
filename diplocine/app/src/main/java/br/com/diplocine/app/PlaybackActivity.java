@@ -23,6 +23,9 @@ import androidx.media3.common.Player;
 import androidx.media3.exoplayer.ExoPlayer;
 import androidx.media3.ui.PlayerView;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
+
 import java.net.URI;
 import java.util.Locale;
 import java.util.UUID;
@@ -43,8 +46,9 @@ public final class PlaybackActivity extends Activity {
     private String type, title, profile, account, directUrl, directKind, playbackId;
     private int id, season, episode, sequence, generation;
     private int[] next;
-    private long position;
-    private boolean tv, fullscreen;
+    private long position, lastRemotePosition = -1;
+    private String lastRemoteMedia = "";
+    private boolean tv, fullscreen, checkedRemoteProgress;
 
     @Override protected void onCreate(Bundle saved) {
         super.onCreate(saved);
@@ -107,6 +111,7 @@ public final class PlaybackActivity extends Activity {
     @Override protected void onStart() {
         super.onStart();
         resolve();
+        if ("tv".equals(type) && next == null) findNext();
     }
 
     @Override protected void onStop() {
@@ -162,12 +167,21 @@ public final class PlaybackActivity extends Activity {
             return;
         }
         int currentSeason = Math.max(1, season), currentEpisode = Math.max(1, episode);
+        boolean checkRemote = !checkedRemoteProgress;
+        checkedRemoteProgress = true;
+        String media = mediaKey();
+        long localTime = preferences.getLong(progressKey() + ":time", 0);
         network.execute(() -> {
             try {
                 String path = "/api/player/source?type=" + type + "&id=" + id
                         + "&season=" + currentSeason + "&episode=" + currentEpisode;
                 String url = api.get(path).getString("url");
-                handler.post(() -> { if (generation == version && !isDestroyed()) prepare(url); });
+                long remotePosition = checkRemote ? readRemoteProgress(media, localTime) : -1;
+                handler.post(() -> {
+                    if (generation != version || isDestroyed()) return;
+                    if (remotePosition >= 0) position = remotePosition;
+                    prepare(url);
+                });
             } catch (Exception error) {
                 String text = error instanceof DiploApi.Failure ? error.getMessage() : "Falha ao carregar a fonte.";
                 handler.post(() -> { if (generation == version && !isDestroyed()) failed(text); });
@@ -215,14 +229,61 @@ public final class PlaybackActivity extends Activity {
         if (type == null || player == null || player.getDuration() == C.TIME_UNSET || player.getDuration() <= 0) return;
         position = player.getCurrentPosition();
         long resume = "ended".equals(state) ? 0 : position;
-        preferences.edit().putLong(progressKey(), resume).apply();
+        long time = System.currentTimeMillis();
+        preferences.edit().putLong(progressKey(), resume).putLong(progressKey() + ":time", time).apply();
         var body = DiploApi.object("profileId", profile, "sessionId", playbackId,
                 "titleId", mediaKey(), "seq", sequence++, "mediaPosition", position / 1000d,
                 "state", state, "pageVisible", true);
+        JSONObject saved = DiploApi.object("key", mediaKey(), "type", type, "id", id, "title", title,
+                "season", season, "episode", episode, "position", resume, "time", time);
+        boolean syncProgress = !"playing".equals(state)
+                && (!mediaKey().equals(lastRemoteMedia) || resume != lastRemotePosition);
+        if (syncProgress) {
+            lastRemoteMedia = mediaKey();
+            lastRemotePosition = resume;
+        }
         events.execute(() -> {
             try { api.post("/api/v1/playback/heartbeat", body); }
             catch (Exception ignored) { }
+            if (syncProgress) writeRemoteProgress(saved);
         });
+    }
+
+    private long readRemoteProgress(String media, long localTime) {
+        try {
+            JSONObject state = api.get("/auth/state").getJSONObject("data");
+            JSONArray entries = MainActivity.array(MainActivity.object(MainActivity.object(state, "storage"), profile),
+                    "diploAndroidResume");
+            for (int i = 0; i < entries.length(); i++) {
+                JSONObject entry = entries.optJSONObject(i);
+                if (entry != null && media.equals(entry.optString("key")) && entry.optLong("time") > localTime) {
+                    return entry.optLong("position");
+                }
+            }
+        } catch (Exception ignored) { }
+        return -1;
+    }
+
+    private void writeRemoteProgress(JSONObject entry) {
+        try {
+            api.updateState(data -> {
+                JSONObject storage = MainActivity.object(data, "storage");
+                JSONObject document = MainActivity.object(storage, profile);
+                JSONArray old = MainActivity.array(document, "diploAndroidResume");
+                JSONArray updated = new JSONArray().put(entry);
+                for (int i = 0; i < old.length() && updated.length() < 24; i++) {
+                    JSONObject candidate = old.optJSONObject(i);
+                    if (candidate == null) continue;
+                    if (entry.optString("key").equals(candidate.optString("key"))) {
+                        if (candidate.optLong("time") >= entry.optLong("time")) return false;
+                    } else updated.put(candidate);
+                }
+                document.put("diploAndroidResume", updated);
+                storage.put(profile, document);
+                data.put("storage", storage);
+                return true;
+            });
+        } catch (Exception ignored) { }
     }
 
     private String mediaKey() { return type + ":" + id + ":" + season + ":" + episode; }
@@ -237,10 +298,15 @@ public final class PlaybackActivity extends Activity {
         episode = next[1];
         next = null;
         position = resumePosition();
+        checkedRemoteProgress = false;
         playbackId = UUID.randomUUID().toString();
         sequence = 0;
         updateNextButton();
         resolve();
+        findNext();
+    }
+
+    private void findNext() {
         int version = generation;
         int currentSeason = season, currentEpisode = episode;
         network.execute(() -> {

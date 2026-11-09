@@ -59,6 +59,24 @@ final class DiploApi {
         return (JSONObject) request("POST", path, body);
     }
 
+    interface StateEdit { boolean apply(JSONObject data) throws Exception; }
+
+    JSONObject updateState(StateEdit edit) throws Exception {
+        for (int attempt = 0; attempt < 2; attempt++) {
+            JSONObject latest = get("/auth/state");
+            JSONObject data = latest.getJSONObject("data");
+            if (!edit.apply(data)) return latest;
+            try {
+                JSONObject result = post("/auth/sync", object("revision", latest.getInt("revision"), "data", data));
+                latest.put("revision", result.getInt("revision"));
+                return latest;
+            } catch (Failure conflict) {
+                if (conflict.status != 409 || attempt == 1) throw conflict;
+            }
+        }
+        throw new IllegalStateException("Não foi possível sincronizar.");
+    }
+
     void delete(String path) throws Exception {
         request("DELETE", path, null);
     }
