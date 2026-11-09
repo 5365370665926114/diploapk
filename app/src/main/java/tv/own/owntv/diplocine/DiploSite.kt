@@ -81,7 +81,7 @@ internal object DiploSite {
 
     suspend fun playback(token: String, type: String, id: Int, season: Int, episode: Int): String {
         val data = JSONObject(request(
-            "/api/player/source?type=$type&id=$id&season=$season&episode=$episode", token = token,
+            "/api/player/source?type=$type&id=$id&season=${season.coerceAtLeast(1)}&episode=${episode.coerceAtLeast(1)}", token = token,
         ))
         return secureUrl(data.getString("url")) ?: throw IOException("Fonte de vídeo incompatível.")
     }
