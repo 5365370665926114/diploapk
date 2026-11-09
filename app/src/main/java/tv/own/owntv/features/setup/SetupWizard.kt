@@ -248,8 +248,6 @@ fun Onboarding(firstRun: Boolean, onDone: (Long?) -> Unit, onCancel: () -> Unit,
                 ) {
                     WizardCards(
                         listOf(
-                            WizardCard(OwnTVIcon.LIVE_TV, stringResource(R.string.diplo_channels),
-                    if (loadingDiplo) stringResource(R.string.diplo_loading_channels) else stringResource(R.string.diplo_channels_help), onDiploChannels),
                 WizardCard(OwnTVIcon.PHONE, stringResource(R.string.setup_from_phone), stringResource(R.string.setup_upload_from_wifi_device)) { step = Step.IMPORT_BACKUP_REMOTE },
                             WizardCard(OwnTVIcon.FOLDER, stringResource(R.string.setup_local_file), stringResource(R.string.setup_pick_backup_local)) { step = Step.IMPORT_BACKUP },
                         ),

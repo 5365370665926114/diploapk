@@ -27,7 +27,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.ComposeView
+import androidx.compose.ui.platform.ComposeView
 import com.journeyapps.barcodescanner.ScanContract
 import com.journeyapps.barcodescanner.ScanOptions
 import tv.own.owntv.R
@@ -109,8 +109,8 @@ class DiploMobileActivity : ComponentActivity() {
             }
             webChromeClient = object : WebChromeClient() {
                 override fun onProgressChanged(view: WebView, value: Int) {
-                    progress.progress = value
-                    progress.visibility = if (value == 100) View.GONE else View.VISIBLE
+                    this@DiploMobileActivity.progress.progress = value
+                    this@DiploMobileActivity.progress.visibility = if (value == 100) View.GONE else View.VISIBLE
                 }
                 override fun onShowCustomView(view: View, callback: CustomViewCallback) {
                     if (customView != null) { callback.onCustomViewHidden(); return }
