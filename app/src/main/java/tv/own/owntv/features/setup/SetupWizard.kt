@@ -27,6 +27,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
@@ -93,6 +94,25 @@ fun Onboarding(firstRun: Boolean, onDone: (Long?) -> Unit, onCancel: () -> Unit,
     var importOrigin by remember { mutableStateOf(Step.ADD_SOURCE) }
     // The playlist being imported, for "Importing <name>"; null when linking existing playlists.
     var importName by remember { mutableStateOf<String?>(null) }
+    var fetchDiploChannels by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    LaunchedEffect(fetchDiploChannels, step) {
+        if (!fetchDiploChannels || step != Step.ADD_CONTENT) return@LaunchedEffect
+        try {
+            val file = tv.own.owntv.diplocine.DiploSite.channelPlaylist(context.applicationContext)
+            importName = "Canais DiploCine"
+            importOrigin = Step.ADD_CONTENT
+            vm.startM3u(importName!!, file.absolutePath)
+            step = Step.IMPORTING
+        } catch (cancelled: kotlinx.coroutines.CancellationException) {
+            throw cancelled
+        } catch (_: Exception) {
+            android.widget.Toast.makeText(context, "Não foi possível carregar os canais do DiploCine.",
+                android.widget.Toast.LENGTH_LONG).show()
+        } finally {
+            fetchDiploChannels = false
+        }
+    }
     // Where Back from the backup-restore picker returns to (first-run choice vs. add-content step).
     var backupOrigin by remember { mutableStateOf(Step.ADD_CONTENT) }
     // The chosen backup file and what the user wants out of it. A file with no choice yet is what
@@ -155,6 +175,8 @@ fun Onboarding(firstRun: Boolean, onDone: (Long?) -> Unit, onCancel: () -> Unit,
             )
             Step.ADD_CONTENT -> AddContentStep(
                 hasExisting = existing.isNotEmpty(),
+                loadingDiplo = fetchDiploChannels,
+                onDiploChannels = { fetchDiploChannels = true },
                 onPhone = { step = Step.ADD_SOURCE_REMOTE },
                 onType = { step = Step.ADD_SOURCE },
                 onExisting = { step = Step.EXISTING },
@@ -226,7 +248,9 @@ fun Onboarding(firstRun: Boolean, onDone: (Long?) -> Unit, onCancel: () -> Unit,
                 ) {
                     WizardCards(
                         listOf(
-                            WizardCard(OwnTVIcon.PHONE, stringResource(R.string.setup_from_phone), stringResource(R.string.setup_upload_from_wifi_device)) { step = Step.IMPORT_BACKUP_REMOTE },
+                            WizardCard(OwnTVIcon.LIVE_TV, "Canais DiploCine",
+                    if (loadingDiplo) "Carregando canais…" else "Use a lista do site na TV ao vivo", onDiploChannels),
+                WizardCard(OwnTVIcon.PHONE, stringResource(R.string.setup_from_phone), stringResource(R.string.setup_upload_from_wifi_device)) { step = Step.IMPORT_BACKUP_REMOTE },
                             WizardCard(OwnTVIcon.FOLDER, stringResource(R.string.setup_local_file), stringResource(R.string.setup_pick_backup_local)) { step = Step.IMPORT_BACKUP },
                         ),
                         first,
@@ -535,7 +559,7 @@ private fun AvatarStrip(ids: List<Int>, chosen: Int) {
 
 /** Add a playlist: From your phone, Type it here, Import (and Existing when another profile has some). */
 @Composable
-private fun AddContentStep(hasExisting: Boolean, onPhone: () -> Unit, onType: () -> Unit, onExisting: () -> Unit, onImport: () -> Unit, onSkip: () -> Unit) {
+private fun AddContentStep(hasExisting: Boolean, loadingDiplo: Boolean, onDiploChannels: () -> Unit, onPhone: () -> Unit, onType: () -> Unit, onExisting: () -> Unit, onImport: () -> Unit, onSkip: () -> Unit) {
     val first = rememberFirstFocus()
     WizardFrame(
         step = WizardStep.PLAYLIST,
@@ -548,6 +572,8 @@ private fun AddContentStep(hasExisting: Boolean, onPhone: () -> Unit, onType: ()
     ) {
         WizardCards(
             listOfNotNull(
+                WizardCard(OwnTVIcon.LIVE_TV, "Canais DiploCine",
+                    if (loadingDiplo) "Carregando canais…" else "Use a lista do site na TV ao vivo", onDiploChannels),
                 WizardCard(OwnTVIcon.PHONE, stringResource(R.string.setup_from_phone), stringResource(R.string.setup_phone_card_line), onPhone),
                 WizardCard(OwnTVIcon.PENCIL, stringResource(R.string.settings_add_type_here), stringResource(R.string.settings_line_add_type_here), onType),
                 if (hasExisting) WizardCard(OwnTVIcon.PLAYLIST, stringResource(R.string.setup_existing), stringResource(R.string.setup_use_other_profile_playlists), onExisting) else null,

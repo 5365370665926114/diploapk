@@ -30,6 +30,7 @@ import tv.own.owntv.core.brand.AppIconSwitcher
 import tv.own.owntv.core.brand.PixelMark as CorePixelMark
 import tv.own.owntv.core.settings.SettingsRepository
 import tv.own.owntv.ui.theme.stageAccent
+import tv.own.owntv.ui.theme.stageText
 
 /**
  * The icon colour the launcher shows right now. The in-app logo follows it, not the saved choice, so
@@ -106,9 +107,15 @@ private val PixelPower = Color(CorePixelMark.POWER)
  */
 @Composable
 fun Wordmark(width: Dp, modifier: Modifier = Modifier, tv: Color = stageAccent.accent, own: Color = WordmarkCream) {
-    Box(modifier.width(width).height(width * 182f / 988f)) {
-        Image(painterResource(R.drawable.owntv_wordmark_own), null, Modifier.fillMaxSize(), colorFilter = ColorFilter.tint(own))
-        Image(painterResource(R.drawable.owntv_wordmark_tv), null, Modifier.fillMaxSize(), colorFilter = ColorFilter.tint(tv))
+    Box(modifier.width(width).height(width * 182f / 988f), contentAlignment = Alignment.CenterStart) {
+        androidx.tv.material3.Text(
+            "DIPLOCINE",
+            color = if (own == WordmarkCream) tv else own,
+            style = stageText(24, 800).copy(
+                fontSize = androidx.compose.ui.unit.TextUnit(width.value * 0.16f, androidx.compose.ui.unit.TextUnitType.Sp),
+            ),
+            maxLines = 1,
+        )
     }
 }
 
@@ -125,9 +132,8 @@ fun BrandLockup(
     markSize: Int = 36,
     stacked: Boolean = false,
 ) {
-    val icon = rememberAppliedIcon()
     val parts = @Composable {
-        BrandMark(icon, markSize.dp)
+        Image(painterResource(R.drawable.diplo_icon), null, Modifier.size(markSize.dp))
         // On a light theme "own" takes the text colour; the cream is for dark surfaces.
         Wordmark((markSize * 2.75f).dp, own = if (tv.own.owntv.ui.theme.LocalStagePalette.current.isLight) tv.own.owntv.ui.theme.StageColors.Text else WordmarkCream)
     }

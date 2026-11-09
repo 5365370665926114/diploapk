@@ -44,7 +44,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "tv.own.owntv"
+        applicationId = "br.com.diplocine.app"
         minSdk = 26
         targetSdk = 36
         // CI injects these from the git tag (see .github/workflows/android.yml) so releases never
@@ -346,6 +346,7 @@ dependencies {
     // https://github.com/ahXN00/OwnTV_Core. Set owntv.corePath in ~/.gradle/gradle.properties to
     // build against its source instead of this pinned version.
     implementation(libs.owntv.core)
+    implementation("com.journeyapps:zxing-android-embedded:4.3.0")
 
     // The shared playback engine. The TV HUD in app/player/** drives it; it renders nothing itself,
     // so the mobile shell drives the same engine. Always on the same version as core.

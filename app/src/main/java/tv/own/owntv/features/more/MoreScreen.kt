@@ -182,6 +182,16 @@ fun MoreScreen(
                 )
             }
             item(MoreItem.SETTINGS, OwnTVIcon.SETTINGS, stringResource(R.string.common_nav_settings), null, false)
+            StageGroupItem(
+                text = "Modo de exibição", icon = OwnTVIcon.PHONE, value = null,
+                warn = false, selected = false,
+                onClick = {
+                    val intent = android.content.Intent(context, tv.own.owntv.diplocine.DiploStartActivity::class.java)
+                        .putExtra("choose", true)
+                    context.startActivity(intent)
+                    (context as? android.app.Activity)?.finish()
+                },
+            )
             GroupLabel(stringResource(R.string.more_group_your_things))
             item(MoreItem.FAVORITES, OwnTVIcon.FAVORITE, stringResource(R.string.content_category_favorites), favorites.total.toString(), false)
             item(MoreItem.HISTORY, OwnTVIcon.HISTORY, stringResource(R.string.content_category_history), history.total.toString(), false)

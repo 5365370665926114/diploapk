@@ -1,4 +1,4 @@
-package br.com.diplocine.app;
+package tv.own.owntv.diplocine;
 
 import android.content.SharedPreferences;
 import android.security.keystore.KeyGenParameterSpec;
