@@ -78,6 +78,8 @@
                 <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity android:name=".diplocine.DiploCatalogActivity" android:exported="false"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden" />
         <activity android:name=".diplocine.DiploMobileActivity" android:exported="false"
             android:configChanges="orientation|screenSize|screenLayout|keyboardHidden" />
 

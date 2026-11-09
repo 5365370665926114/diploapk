@@ -3,6 +3,8 @@ package tv.own.owntv.features.more
 import androidx.compose.foundation.layout.size
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -164,6 +166,7 @@ fun MoreScreen(
                 .width(440.mpx)
                 .fillMaxHeight()
                 .stageGlass(32.mpx, overContent = true)
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = 16.mpx, vertical = 26.mpx)
                 // ◀ back from the page lands on the item that page belongs to.
                 .focusProperties { onEnter = { runCatching { itemFocus.getValue(selected).requestFocus() } } }
@@ -182,6 +185,13 @@ fun MoreScreen(
                 )
             }
             item(MoreItem.SETTINGS, OwnTVIcon.SETTINGS, stringResource(R.string.common_nav_settings), null, false)
+            StageGroupItem(
+                text = "Catálogo DiploCine", icon = OwnTVIcon.MOVIES, value = null,
+                warn = false, selected = false,
+                onClick = {
+                    context.startActivity(android.content.Intent(context, tv.own.owntv.diplocine.DiploCatalogActivity::class.java))
+                },
+            )
             StageGroupItem(
                 text = "Modo de exibição", icon = OwnTVIcon.PHONE, value = null,
                 warn = false, selected = false,

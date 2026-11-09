@@ -84,6 +84,16 @@ internal object DiploSite {
         }
     }
 
+    suspend fun metadata(path: String): JSONObject =
+        JSONObject(request("/api/v1/tmdb/" + path))
+
+    suspend fun playback(token: String, type: String, id: Int, season: Int, episode: Int): String {
+        val data = JSONObject(request(
+            "/api/player/source?type=$type&id=$id&season=$season&episode=$episode", token = token,
+        ))
+        return secureUrl(data.getString("url")) ?: throw IOException("Fonte de vídeo incompatível.")
+    }
+
     private fun attribute(value: String) = value.replace(Regex("[\"\\r\\n]"), " ").trim()
 
     private fun secureUrl(value: String): String? {
