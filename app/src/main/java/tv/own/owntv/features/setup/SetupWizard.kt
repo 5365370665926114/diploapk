@@ -100,14 +100,14 @@ fun Onboarding(firstRun: Boolean, onDone: (Long?) -> Unit, onCancel: () -> Unit,
         if (!fetchDiploChannels || step != Step.ADD_CONTENT) return@LaunchedEffect
         try {
             val file = tv.own.owntv.diplocine.DiploSite.channelPlaylist(context.applicationContext)
-            importName = "Canais DiploCine"
+            importName = context.getString(R.string.diplo_channels)
             importOrigin = Step.ADD_CONTENT
             vm.startM3u(importName!!, file.absolutePath)
             step = Step.IMPORTING
         } catch (cancelled: kotlinx.coroutines.CancellationException) {
             throw cancelled
         } catch (_: Exception) {
-            android.widget.Toast.makeText(context, "Não foi possível carregar os canais do DiploCine.",
+            android.widget.Toast.makeText(context, context.getString(R.string.diplo_channels_failed),
                 android.widget.Toast.LENGTH_LONG).show()
         } finally {
             fetchDiploChannels = false
@@ -248,8 +248,8 @@ fun Onboarding(firstRun: Boolean, onDone: (Long?) -> Unit, onCancel: () -> Unit,
                 ) {
                     WizardCards(
                         listOf(
-                            WizardCard(OwnTVIcon.LIVE_TV, "Canais DiploCine",
-                    if (loadingDiplo) "Carregando canais…" else "Use a lista do site na TV ao vivo", onDiploChannels),
+                            WizardCard(OwnTVIcon.LIVE_TV, stringResource(R.string.diplo_channels),
+                    if (loadingDiplo) stringResource(R.string.diplo_loading_channels) else stringResource(R.string.diplo_channels_help), onDiploChannels),
                 WizardCard(OwnTVIcon.PHONE, stringResource(R.string.setup_from_phone), stringResource(R.string.setup_upload_from_wifi_device)) { step = Step.IMPORT_BACKUP_REMOTE },
                             WizardCard(OwnTVIcon.FOLDER, stringResource(R.string.setup_local_file), stringResource(R.string.setup_pick_backup_local)) { step = Step.IMPORT_BACKUP },
                         ),
@@ -572,8 +572,8 @@ private fun AddContentStep(hasExisting: Boolean, loadingDiplo: Boolean, onDiploC
     ) {
         WizardCards(
             listOfNotNull(
-                WizardCard(OwnTVIcon.LIVE_TV, "Canais DiploCine",
-                    if (loadingDiplo) "Carregando canais…" else "Use a lista do site na TV ao vivo", onDiploChannels),
+                WizardCard(OwnTVIcon.LIVE_TV, stringResource(R.string.diplo_channels),
+                    if (loadingDiplo) stringResource(R.string.diplo_loading_channels) else stringResource(R.string.diplo_channels_help), onDiploChannels),
                 WizardCard(OwnTVIcon.PHONE, stringResource(R.string.setup_from_phone), stringResource(R.string.setup_phone_card_line), onPhone),
                 WizardCard(OwnTVIcon.PENCIL, stringResource(R.string.settings_add_type_here), stringResource(R.string.settings_line_add_type_here), onType),
                 if (hasExisting) WizardCard(OwnTVIcon.PLAYLIST, stringResource(R.string.setup_existing), stringResource(R.string.setup_use_other_profile_playlists), onExisting) else null,

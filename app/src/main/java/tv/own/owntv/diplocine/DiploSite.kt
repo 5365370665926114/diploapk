@@ -39,14 +39,6 @@ internal object DiploSite {
         if (error.status == 401) false else throw error
     }
 
-    suspend fun logout(token: String) {
-        try {
-            request("/api/v1/mobile/logout", JSONObject(), token)
-        } catch (error: HttpFailure) {
-            if (error.status != 401) throw error
-        }
-    }
-
     fun devicePage(code: String) = "$origin/dispositivos?pair=$code"
 
     fun isFirstParty(uri: Uri): Boolean =
@@ -114,8 +106,7 @@ internal object DiploSite {
                 val body = response.body.string()
                 if (!response.isSuccessful) {
                     val message = runCatching { JSONObject(body).optString("error") }.getOrNull()
-                    throw HttpFailure(response.code, message?.takeIf { it.isNotBlank() }
-                        ?: "O DiploCine retornou HTTP ${response.code}.")
+                    throw HttpFailure(response.code, message.orEmpty())
                 }
                 body
             }

@@ -1,5 +1,6 @@
 package tv.own.owntv.diplocine
 
+import androidx.compose.ui.res.stringResource
 import android.annotation.SuppressLint
 import android.content.Intent
 import android.content.pm.ActivityInfo
@@ -29,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.ComposeView
 import com.journeyapps.barcodescanner.ScanContract
 import com.journeyapps.barcodescanner.ScanOptions
+import tv.own.owntv.R
 import tv.own.owntv.core.theme.AccentColor
 import tv.own.owntv.core.theme.ThemeMode
 import tv.own.owntv.ui.components.OwnTVIcon
@@ -50,7 +52,7 @@ class DiploMobileActivity : ComponentActivity() {
             uri.getQueryParameter("pair").orEmpty().replace("-", "").trim().uppercase(Locale.ROOT)
         } else ""
         if (DiploSite.codeFormat.matches(code)) web.loadUrl(DiploSite.devicePage(code))
-        else Toast.makeText(this, "Use o QR exibido pelo DiploCine na TV.", Toast.LENGTH_LONG).show()
+        else Toast.makeText(this, getString(R.string.diplo_invalid_qr), Toast.LENGTH_LONG).show()
     }
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -69,12 +71,12 @@ class DiploMobileActivity : ComponentActivity() {
                             .padding(horizontal = 10.dp, vertical = 6.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        StageButton("Modos", ::openModes, Modifier.weight(1f), icon = OwnTVIcon.BACK,
+                        StageButton(getString(R.string.diplo_modes), ::openModes, Modifier.weight(1f), icon = OwnTVIcon.BACK,
                             height = 42.dp, textSize = 16)
-                        StageButton("Conectar TV", { web.loadUrl(DiploSite.origin + "/dispositivos") },
+                        StageButton(getString(R.string.diplo_connect_tv), { web.loadUrl(DiploSite.origin + "/dispositivos") },
                             Modifier.weight(1.25f), icon = OwnTVIcon.LIVE_TV, height = 42.dp, textSize = 16)
-                        StageButton("QR", { scan.launch(ScanOptions().setDesiredBarcodeFormats(ScanOptions.QR_CODE)
-                            .setPrompt("Escaneie o QR que aparece na TV").setBeepEnabled(false)) },
+                        StageButton(getString(R.string.diplo_qr), { scan.launch(ScanOptions().setDesiredBarcodeFormats(ScanOptions.QR_CODE)
+                            .setPrompt(getString(R.string.diplo_scan_prompt)).setBeepEnabled(false)) },
                             Modifier.weight(.68f), height = 42.dp, textSize = 16)
                     }
                 }
@@ -101,7 +103,7 @@ class DiploMobileActivity : ComponentActivity() {
                 }
                 override fun onReceivedError(view: WebView, request: WebResourceRequest, error: WebResourceError) {
                     if (request.isForMainFrame) {
-                        Toast.makeText(this@DiploMobileActivity, "Falha ao abrir o DiploCine. Confira a internet.", Toast.LENGTH_LONG).show()
+                        Toast.makeText(this@DiploMobileActivity, this@DiploMobileActivity.getString(R.string.diplo_site_failed), Toast.LENGTH_LONG).show()
                     }
                 }
             }

@@ -30,7 +30,15 @@ jobs:
           VERSION_CODE: '100000'
         run: |
           chmod +x gradlew
-          ./gradlew :app:assembleStandardDebug --stacktrace
+          set -o pipefail
+          for attempt in 1 2; do
+            if ./gradlew :app:assembleStandardDebug --stacktrace 2>&1 | tee "$RUNNER_TEMP/diplo-gradle.log"; then
+              exit 0
+            fi
+            if [ "$attempt" -eq 2 ] || ! grep -Eqi 'status code (502|503|504)|read timed out|failed: timeout' "$RUNNER_TEMP/diplo-gradle.log"; then
+              exit 1
+            fi
+          done
       - name: Package test APK
         run: cp app/build/outputs/apk/standard/debug/*.apk DiploCine-OwnTV-debug.apk
       - uses: actions/upload-artifact@v7

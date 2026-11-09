@@ -186,14 +186,14 @@ fun MoreScreen(
             }
             item(MoreItem.SETTINGS, OwnTVIcon.SETTINGS, stringResource(R.string.common_nav_settings), null, false)
             StageGroupItem(
-                text = "Catálogo DiploCine", icon = OwnTVIcon.MOVIES, value = null,
+                text = stringResource(R.string.diplo_catalog), icon = OwnTVIcon.MOVIES, value = null,
                 warn = false, selected = false,
                 onClick = {
                     context.startActivity(android.content.Intent(context, tv.own.owntv.diplocine.DiploCatalogActivity::class.java))
                 },
             )
             StageGroupItem(
-                text = "Modo de exibição", icon = OwnTVIcon.PHONE, value = null,
+                text = stringResource(R.string.diplo_display_mode), icon = OwnTVIcon.PHONE, value = null,
                 warn = false, selected = false,
                 onClick = {
                     val intent = android.content.Intent(context, tv.own.owntv.diplocine.DiploStartActivity::class.java)

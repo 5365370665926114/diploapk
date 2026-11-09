@@ -1,5 +1,6 @@
 package tv.own.owntv.diplocine
 
+import androidx.compose.ui.res.stringResource
 import android.app.UiModeManager
 import android.content.Intent
 import android.content.pm.ActivityInfo
@@ -57,7 +58,6 @@ import tv.own.owntv.core.theme.ThemeMode
 import tv.own.owntv.ui.components.OwnTVIcon
 import tv.own.owntv.ui.stage.StageButton
 import tv.own.owntv.ui.theme.OwnTVTheme
-import java.util.Locale
 
 class DiploStartActivity : ComponentActivity() {
     private val preferences by lazy { getSharedPreferences("diplo-entry", MODE_PRIVATE) }
@@ -76,7 +76,7 @@ class DiploStartActivity : ComponentActivity() {
         if (!intent.getBooleanExtra("choose", false) && saved == "tv") selectTv()
         setContent {
             OwnTVTheme(ThemeMode.DARK, AccentColor.TEAL, true, customAccent = "#E50914") {
-                BackHandler(enabled = selected == "tv") { selected = "" }
+                BackHandler(enabled = selected == "tv", onBack = ::resetMode)
                 if (selected == "tv") PairingScreen()
                 else ModeScreen(isTelevision, ::selectTv, ::openPhone)
             }
@@ -86,6 +86,11 @@ class DiploStartActivity : ComponentActivity() {
     private fun selectTv() {
         selected = "tv"
         if (!isTelevision) requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+    }
+
+    private fun resetMode() {
+        selected = ""
+        if (!isTelevision) requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
     }
 
     private fun openPhone() {
@@ -157,7 +162,7 @@ class DiploStartActivity : ComponentActivity() {
                         }
                         "rejected" -> {
                             pairing = null
-                            error = "A conexão foi recusada no celular."
+                            error = getString(R.string.diplo_pair_rejected)
                             return@LaunchedEffect
                         }
                     }
@@ -167,8 +172,8 @@ class DiploStartActivity : ComponentActivity() {
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (failure: Exception) {
-                error = if (failure is DiploSite.HttpFailure) failure.message
-                    else "Confira a conexão com o DiploCine e tente de novo."
+                error = (failure as? DiploSite.HttpFailure)?.message?.takeIf { it.isNotBlank() }
+                    ?: getString(R.string.diplo_pair_failed)
             }
         }
         LaunchedEffect(pairing) {
@@ -181,30 +186,30 @@ class DiploStartActivity : ComponentActivity() {
         }
 
         DiploScaffold {
-            Header("Conectar à TV", "No celular logado, abra Dispositivos para autorizar a TV.")
+            Header(stringResource(R.string.diplo_connect_title), stringResource(R.string.diplo_connect_subtitle))
             val current = pairing
             if (error != null) {
                 Text(error.orEmpty(), color = SoftText, fontSize = 17.sp)
-                StageButton("Tentar novamente", { attempt++ }, Modifier.focusRequester(retryFocus),
+                StageButton(stringResource(R.string.diplo_retry), { attempt++ }, Modifier.focusRequester(retryFocus),
                     icon = OwnTVIcon.LIVE_TV, height = 48.dp)
-                StageButton("Abrir biblioteca local", ::openTv, height = 48.dp)
+                StageButton(stringResource(R.string.diplo_open_local), ::openTv, height = 48.dp)
                 LaunchedEffect(error) { retryFocus.requestFocus() }
             } else if (current != null) {
                 val codeBitmap = remember(current.code) { qr(DiploSite.devicePage(current.code)) }
                 Row(horizontalArrangement = Arrangement.spacedBy(26.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Image(codeBitmap.asImageBitmap(), "QR para vincular a TV", Modifier.size(155.dp))
+                    Image(codeBitmap.asImageBitmap(), stringResource(R.string.diplo_pair_qr_alt), Modifier.size(155.dp))
                     Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
                         Text(current.code.chunked(4).joinToString("-"), color = Color.White,
                             fontSize = 28.sp, fontWeight = FontWeight.Bold, letterSpacing = 3.sp)
-                        Text(String.format(Locale.ROOT, "Válido por %02d:%02d", remaining / 60, remaining % 60),
+                        Text(stringResource(R.string.diplo_pair_expires, remaining / 60, remaining % 60),
                             color = SoftText, fontSize = 16.sp)
-                        StageButton("Gerar outro código", { attempt++ }, height = 44.dp)
+                        StageButton(stringResource(R.string.diplo_pair_renew), { attempt++ }, height = 44.dp)
                     }
                 }
             } else {
-                Text("Preparando o código da TV…", color = SoftText, fontSize = 17.sp)
+                Text(stringResource(R.string.diplo_pair_loading), color = SoftText, fontSize = 17.sp)
             }
-            StageButton("Escolher outro modo", { selected = "" }, height = 44.dp)
+            StageButton(stringResource(R.string.diplo_choose_again), ::resetMode, height = 44.dp)
         }
     }
 
@@ -217,20 +222,20 @@ private val SoftText = Color(0xFFB9B6BE)
 private fun ModeScreen(tv: Boolean, openTv: () -> Unit, openPhone: () -> Unit) {
     val preferred = remember { FocusRequester() }
     DiploScaffold {
-        Header("Como você vai assistir?", "Escolha o modo deste aparelho.")
+        Header(stringResource(R.string.diplo_mode_title), stringResource(R.string.diplo_mode_subtitle))
         BoxWithConstraints(Modifier.fillMaxWidth()) {
             if (maxWidth >= 535.dp) {
                 Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                    StageButton("Modo TV", openTv, Modifier.weight(1f).then(if (tv) Modifier.focusRequester(preferred) else Modifier),
+                    StageButton(stringResource(R.string.diplo_mode_tv), openTv, Modifier.weight(1f).then(if (tv) Modifier.focusRequester(preferred) else Modifier),
                         icon = OwnTVIcon.LIVE_TV, height = 64.dp, textSize = 24)
-                    StageButton("Modo celular", openPhone, Modifier.weight(1f).then(if (!tv) Modifier.focusRequester(preferred) else Modifier),
+                    StageButton(stringResource(R.string.diplo_mode_phone), openPhone, Modifier.weight(1f).then(if (!tv) Modifier.focusRequester(preferred) else Modifier),
                         icon = OwnTVIcon.PHONE, height = 64.dp, textSize = 24)
                 }
             } else {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    StageButton("Modo celular", openPhone, Modifier.fillMaxWidth().then(if (!tv) Modifier.focusRequester(preferred) else Modifier),
+                    StageButton(stringResource(R.string.diplo_mode_phone), openPhone, Modifier.fillMaxWidth().then(if (!tv) Modifier.focusRequester(preferred) else Modifier),
                         icon = OwnTVIcon.PHONE, height = 56.dp)
-                    StageButton("Modo TV", openTv, Modifier.fillMaxWidth().then(if (tv) Modifier.focusRequester(preferred) else Modifier),
+                    StageButton(stringResource(R.string.diplo_mode_tv), openTv, Modifier.fillMaxWidth().then(if (tv) Modifier.focusRequester(preferred) else Modifier),
                         icon = OwnTVIcon.LIVE_TV, height = 56.dp)
                 }
             }
@@ -252,7 +257,7 @@ private fun DiploScaffold(content: @Composable () -> Unit) {
         ) {
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
                 Image(painterResource(R.drawable.diplo_icon), null, Modifier.size(39.dp))
-                Text("DIPLOCINE", color = Color.White, fontSize = 18.sp,
+                Text(stringResource(R.string.diplo_wordmark), color = Color.White, fontSize = 18.sp,
                     fontWeight = FontWeight.Bold, letterSpacing = 3.sp)
             }
             content()

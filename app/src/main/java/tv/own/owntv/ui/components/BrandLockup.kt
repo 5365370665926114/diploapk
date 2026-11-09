@@ -1,5 +1,6 @@
 package tv.own.owntv.ui.components
 
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
@@ -109,12 +110,13 @@ private val PixelPower = Color(CorePixelMark.POWER)
 fun Wordmark(width: Dp, modifier: Modifier = Modifier, tv: Color = stageAccent.accent, own: Color = WordmarkCream) {
     Box(modifier.width(width).height(width * 182f / 988f), contentAlignment = Alignment.CenterStart) {
         androidx.tv.material3.Text(
-            "DIPLOCINE",
+            stringResource(R.string.diplo_wordmark),
             color = if (own == WordmarkCream) tv else own,
             style = stageText(24, 800).copy(
                 fontSize = androidx.compose.ui.unit.TextUnit(width.value * 0.16f, androidx.compose.ui.unit.TextUnitType.Sp),
             ),
             maxLines = 1,
+            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
         )
     }
 }
