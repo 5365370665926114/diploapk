@@ -3,6 +3,8 @@ package tv.own.owntv.features.more
 import androidx.compose.foundation.layout.size
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -164,6 +166,7 @@ fun MoreScreen(
                 .width(440.mpx)
                 .fillMaxHeight()
                 .stageGlass(32.mpx, overContent = true)
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = 16.mpx, vertical = 26.mpx)
                 // ◀ back from the page lands on the item that page belongs to.
                 .focusProperties { onEnter = { runCatching { itemFocus.getValue(selected).requestFocus() } } }
@@ -182,6 +185,23 @@ fun MoreScreen(
                 )
             }
             item(MoreItem.SETTINGS, OwnTVIcon.SETTINGS, stringResource(R.string.common_nav_settings), null, false)
+            StageGroupItem(
+                text = stringResource(R.string.diplo_catalog), icon = OwnTVIcon.MOVIES, value = null,
+                warn = false, selected = false,
+                onClick = {
+                    context.startActivity(android.content.Intent(context, tv.own.owntv.diplocine.DiploCatalogActivity::class.java))
+                },
+            )
+            StageGroupItem(
+                text = stringResource(R.string.diplo_display_mode), icon = OwnTVIcon.PHONE, value = null,
+                warn = false, selected = false,
+                onClick = {
+                    val intent = android.content.Intent(context, tv.own.owntv.diplocine.DiploStartActivity::class.java)
+                        .putExtra("choose", true)
+                    context.startActivity(intent)
+                    (context as? android.app.Activity)?.finish()
+                },
+            )
             GroupLabel(stringResource(R.string.more_group_your_things))
             item(MoreItem.FAVORITES, OwnTVIcon.FAVORITE, stringResource(R.string.content_category_favorites), favorites.total.toString(), false)
             item(MoreItem.HISTORY, OwnTVIcon.HISTORY, stringResource(R.string.content_category_history), history.total.toString(), false)

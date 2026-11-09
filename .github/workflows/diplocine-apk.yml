@@ -1,0 +1,47 @@
+name: DiploCine APK
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature/diplocine-android]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: diplocine-apk-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  assemble:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '25'
+      - uses: android-actions/setup-android@v4
+        with:
+          packages: 'platform-tools'
+      - uses: gradle/actions/setup-gradle@v6
+      - name: Assemble original OwnTV app
+        env:
+          VERSION_NAME: '0.2.0'
+          VERSION_CODE: '100000'
+        run: |
+          chmod +x gradlew
+          set -o pipefail
+          for attempt in 1 2; do
+            if ./gradlew :app:assembleStandardDebug --stacktrace 2>&1 | tee "$RUNNER_TEMP/diplo-gradle.log"; then
+              exit 0
+            fi
+            if [ "$attempt" -eq 2 ] || ! grep -Eqi 'status code (502|503|504)|response code: (502|503|504)|read timed out|failed: timeout' "$RUNNER_TEMP/diplo-gradle.log"; then
+              exit 1
+            fi
+          done
+      - name: Package test APK
+        run: cp app/build/outputs/apk/standard/debug/*.apk DiploCine-OwnTV-debug.apk
+      - uses: actions/upload-artifact@v7
+        with:
+          name: DiploCine-OwnTV-debug
+          path: DiploCine-OwnTV-debug.apk
