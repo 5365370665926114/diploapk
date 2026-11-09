@@ -1,0 +1,32 @@
+plugins {
+    id 'com.android.application' version '8.7.3'
+}
+
+android {
+    namespace 'br.com.diplocine.app'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'br.com.diplocine.app'
+        minSdk 26
+        targetSdk 35
+        versionCode 1
+        versionName '0.1.0'
+        def origin = providers.environmentVariable('DIPLOCINE_SITE_URL').orElse('').get()
+        buildConfigField 'String', 'SITE_URL', groovy.json.JsonOutput.toJson(origin)
+    }
+
+    buildFeatures { buildConfig true }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    implementation 'androidx.media3:media3-exoplayer:1.6.1'
+    implementation 'androidx.media3:media3-exoplayer-hls:1.6.1'
+    implementation 'androidx.media3:media3-exoplayer-dash:1.6.1'
+    implementation 'androidx.media3:media3-ui:1.6.1'
+    implementation 'com.journeyapps:zxing-android-embedded:4.3.0'
+}
